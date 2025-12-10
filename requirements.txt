@@ -1,0 +1,6 @@
+numpy
+numpy-stl
+PyOpenGL
+PyOpenGL_accelerate
+glfw
+opencv-python
