@@ -24,6 +24,33 @@ class Camera:
     def aspect_ratio(self) -> float:
         return self.horizontal_pixels / self.vertical_pixels
 
+    def pixels_to_point(self, pixel_coords: np.ndarray, distance=1):
+        """ Convert a pixel to a point in 3D space """
+
+        # Should just be able to invert the view-projection matrix
+        n_points = pixel_coords.shape[0]
+
+        # points should be in [-1, -1], not [0, n_px] (convert to normalised device coordinates)
+        x_device = ((pixel_coords[:, 1] / self.horizontal_pixels) * 2 - 1) # TODO: Negate?
+        y_device = -((pixel_coords[:, 0] / self.vertical_pixels) * 2 - 1)
+        z_device = np.ones_like(y_device) #-np.ones_like(y_device) # -1 is near plane, 1 is far plane
+        w_device = np.ones_like(y_device)
+
+        vec4ified = np.vstack((
+              x_device,
+              y_device,
+              z_device,
+              w_device))
+
+
+        view_projection = self.perspective_matrix(0.01*distance, distance*100) @ self.view_matrix()
+        inverted = np.linalg.inv(view_projection)
+
+        world_unnormalised = (inverted @ vec4ified).T
+        normalised = world_unnormalised[:, :3] / world_unnormalised[:, 3].reshape(-1, 1)
+
+        return normalised
+
     def perspective_matrix(self, near: float = 0.01, far: float = 100):
         """ Get the perspective/projection matrix for GL
 
@@ -44,11 +71,9 @@ class Camera:
 
         return m
 
-
     def view_matrix(self):
         """
-        Returns a 4x4 view matrix based on yaw/pitch camera angles.
-        Camera orbits around (0,0,0) at camera_distance.
+        Transform from world position to camera relative
         """
 
         eye = np.array(self.position, dtype=np.float32)

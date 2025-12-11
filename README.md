@@ -10,6 +10,15 @@ triangulation through two cameras. A projector is used to
 identify points on the surface for this triangulation, which 
 avoids the need to rely on identifying consistent image features. 
 
+## Steps
+
+1) **Encode** positional ID into images to project
+2) **Acquire** camera images
+3) **Assign** position ID to pixels images
+4) **Segment** images into good regions
+5) **Triangulate** the locations for each ID and produce a point cloud
+
+Further steps can be applied to merge multiple point clouds.
 
 
 ## Structure
@@ -49,6 +58,13 @@ conditions.
 
 A lot of hooks for messing around with systems can be found in 
 the `if __name__ == "__main__"` section of individual python files.
+
+### Acquisition/Segmentation
+
+
+Colourised images for visualising the segmention part can be  
+`AcquisitionResult.camera_[1|2].colourised(segmentation_parameters)`
+and the raw data can be plotted easily with `AcquisitionResult.camera_[1|2].show_raw()` 
 
 ### Simulations
 

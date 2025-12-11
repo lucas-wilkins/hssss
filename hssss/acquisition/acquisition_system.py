@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
+from skimage.measure import regionprops
 
 from acquisition.textures import GreyscaleImage
 from hssss.camera import Camera
@@ -92,7 +93,32 @@ class SegmentedImages:
     """ Data containing the segmented images and data needed to do triangulation """
     camera_1: np.ndarray
     camera_2: np.ndarray
-    numbers: np.ndarray
+
+    def image_points(self):
+        # Get the centre of mass for each unique region in each of the images
+        props = regionprops(self.camera_1)
+
+        centres_1 = {}
+        for prop in props:
+            label = int(prop.label)
+            centres_1[label] = prop.centroid
+
+        props = regionprops(self.camera_2)
+
+        centres_2 = {}
+        for prop in props:
+            label = int(prop.label)
+            centres_2[label] = prop.centroid
+
+        labels = set(centres_1.keys()).intersection(set(centres_2.keys()))
+        if -1 in labels:
+            labels.remove(-1)
+
+        # Combine, and only for the labels in both
+        paired_centres_1 = np.array([centres_1[int(label)] for label in labels])
+        paired_centres_2 = np.array([centres_2[int(label)] for label in labels])
+
+        return paired_centres_1, paired_centres_2
 
 @dataclass
 class Assignment:
@@ -105,12 +131,7 @@ class Assignment:
         camera_1_seg = self.camera_1.segment(segmentation_parameters)
         camera_2_seg = self.camera_2.segment(segmentation_parameters)
 
-        numbers_1 = np.unique(camera_1_seg.reshape(-1))
-        numbers_2 = np.unique(camera_2_seg.reshape(-1))
-
-        numbers = np.intersect1d(numbers_1, numbers_2)
-
-        return SegmentedImages(camera_1_seg, camera_2_seg, numbers)
+        return SegmentedImages(camera_1_seg, camera_2_seg)
 
 class Encoder:
     """ Creates images to encode/decode image regions """
